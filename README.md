@@ -16,10 +16,11 @@ pip3 install aws-sam-cli
 sam --version
 ```
 
-Create a AWS KMS Key Administrator role. Be sure that the key policy that you create allows the current user to [administer the CMK] (https://aws.amazon.com/premiumsupport/knowledge-center/update-key-policy-future/).
+Create a AWS KMS Key Administrator role. Be sure that the key policy that you create allows the current user to [administer the CMK](https://aws.amazon.com/premiumsupport/knowledge-center/update-key-policy-future/).
 
 For example, create a role named 'KeyAdministratorRole' with the following IAM Policy.
 
+```
 {
     "Version": "2012-10-17",
     "Statement": [
@@ -45,6 +46,7 @@ For example, create a role named 'KeyAdministratorRole' with the following IAM P
         }
     ]
 }
+```
 
 Deploy the primary region.
 
