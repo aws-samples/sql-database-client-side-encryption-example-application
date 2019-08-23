@@ -1,0 +1,120 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: Creates KMS CMK, VPC, Aurora Database, Fargate application, and creates pipeline to build and deploy container
+Parameters:
+  SecondaryRegion:
+    Type: String
+    Description: Secondary Region that will contain the secondary AWS KMS CMK and the Aurora Read Replicas.
+    ConstraintDescription: Must be a a valid region
+
+  KeyAdministratorRole:
+    Type: String
+    Description: This is the IAM Role that is managing the CMK. Be sure that the key policy that you create allows the current user to administer the CMK. https://aws.amazon.com/premiumsupport/knowledge-center/update-key-policy-future/
+
+  DatabaseEngine:
+    Type: String
+    Description: Aurora MySQL or Aurora PostgreSQL
+    Default: aurora-mysql
+    AllowedValues:
+      - aurora-mysql
+      - aurora-postgresql
+    ConstraintDescription: Specify either aurora-mysql or aurora-postgresql
+
+  DjangoDatabaseEngine:
+    Type: String
+    Description: Django Database Connector Type
+    MinLength: 10
+    MaxLength: 255
+    AllowedPattern: "^[a-zA-Z][-a-zA-Z0-9.]*$"
+    Default: django.db.backends.mysql
+    AllowedValues:
+      - django.db.backends.mysql
+      - django.db.backends.postgresql
+    ConstraintDescription: Specify either django.db.backends.mysql or django.db.backends.postgresql to match DatabaseEngine
+
+  DatabaseInstanceClass:
+    Default: db.r4.large
+    Type: String
+    Description: "Database instance class, e.g. db.t2.micro (free tier) - Engine support: https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/Concepts.DBInstanceClass.html"
+    ConstraintDescription: DB instance class not supported
+    AllowedValues:
+      - db.t2.small
+      - db.t2.medium
+      - db.t2.xlarge
+      - db.r4.large
+      - db.r4.xlarge
+      - db.r4.2xlarge
+      - db.r4.4xlarge
+      - db.r4.8xlarge
+      - db.r4.16xlarge
+
+Resources: 
+  KMSCMKKeyStack: 
+    Type: AWS::CloudFormation::Stack
+    Properties: 
+      TemplateURL: cfn.kms.yaml
+      Parameters:
+        KeyAdministratorRole: !Ref KeyAdministratorRole
+
+  VPCStack:
+    Type: AWS::CloudFormation::Stack
+    Properties:
+      TemplateURL: cfn.vpc.yaml
+      Parameters: 
+        AvailabilityZone1: !Select
+          - 0
+          - !GetAZs
+            Ref: 'AWS::Region'
+        AvailabilityZone2: !Select
+          - 1
+          - !GetAZs
+            Ref: 'AWS::Region'
+        SingleNatGateway: "true"
+
+  DatabaseStack:
+    Type: AWS::CloudFormation::Stack
+    Properties:
+      TemplateURL: cfn.aurora.yaml
+      Parameters:
+        DatabaseEngine: !Ref DatabaseEngine
+        DatabaseName: "EncryptedColumnsDB"
+        DatabaseInstanceClass: !Ref DatabaseInstanceClass
+        EnableAlarms: "true"
+        EncryptionAtRest: "true"
+        EnhancedMonitoring: "true"
+        EncryptionAtRestCMKArn: !GetAtt KMSCMKKeyStack.Outputs.EncryptionAtRestCMKArn
+        NetworkStackName: !GetAtt VPCStack.Outputs.StackName
+
+  FargateStack:
+    Type: AWS::CloudFormation::Stack
+    Properties:
+      #TemplateURL: cfn.fargate.yaml
+      TemplateURL: ../tmp/fargate-build-dir/template.yaml
+      Parameters:
+        ColumnEncryptionKeyAlias: !GetAtt KMSCMKKeyStack.Outputs.ColumnEncryptionCMKAlias
+        NetworkStackName: !GetAtt VPCStack.Outputs.StackName
+        DjangoDatabaseEngine: !Ref DjangoDatabaseEngine
+        KMSAccountID: !Sub "${AWS::AccountId}"
+        DatabaseSecretsManagerArn: !GetAtt DatabaseStack.Outputs.DBSecretsArn
+        DatabaseURL: !GetAtt DatabaseStack.Outputs.AuroraDbURL
+        DatabasePort: !GetAtt DatabaseStack.Outputs.AuroraDBPort
+        PrimaryRegion: !Ref 'AWS::Region'
+        SecondaryRegion: !Ref SecondaryRegion
+
+  SecretsManagerReplicationStack:
+    Type: AWS::CloudFormation::Stack
+    Properties:
+      TemplateURL: cfn.secrets-manager-region-replicator.json
+      Parameters:
+        TargetRegion: !Ref SecondaryRegion
+
+  IAMDatabaseAuthenticationStack:
+    Type: AWS::CloudFormation::Stack
+    Properties:
+      TemplateURL: ../tmp/iamauthentication-build-dir/template.yaml
+      Parameters:
+        pDBClusterIdentifier: !GetAtt DatabaseStack.Outputs.AuroraClusterId
+        pAppPrivateSubnetA: !GetAtt VPCStack.Outputs.PrivateSubnet1
+        pAppPrivateSubnetB: !GetAtt VPCStack.Outputs.PrivateSubnet2
+        pAppSecurityGroup: !GetAtt VPCStack.Outputs.AppSecurityGroup
+        pDatabaseSecretsManagerArn: !GetAtt DatabaseStack.Outputs.DBSecretsArn
+        pDatabaseURL: !GetAtt DatabaseStack.Outputs.AuroraDbURL

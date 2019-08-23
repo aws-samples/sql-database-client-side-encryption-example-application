@@ -1,0 +1,4 @@
+Django==2.1.4
+psycopg2==2.8.3
+pymysql==v0.9.3
+aws-encryption-sdk==1.4.0

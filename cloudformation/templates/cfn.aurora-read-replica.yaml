@@ -1,0 +1,204 @@
+#https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-properties-rds-database-instance.html#aws-properties-rds-database-instance-example3
+#
+AWSTemplateFormatVersion: 2010-09-09
+Description: Amazon Aurora Replica Storage Encrypted
+
+Parameters:
+  NetworkStackName:
+    Description: Name of an active CloudFormation stack that contains networking resources
+    Type: String
+    MinLength: 1
+    MaxLength: 255
+    AllowedPattern: "^[a-zA-Z][-a-zA-Z0-9]*$"
+
+  SourceDBInstanceIdentifier:
+    Description: Source Cluster to Replicate
+    Type: String
+
+  KmsKeyId:
+    Description: KMS Key for encryption at rest
+    Type: String
+
+  SourceRegion:
+    Description: Source Region of Amazon Aurora Primary Cluster
+    Type: String
+
+  DatabaseEngine:
+    Default: aurora-mysql
+    Type: String
+    Description: Database engines - Aurora MySQL or Aurora PostgreSQL
+    ConstraintDescription: Choose an engine from the drop down
+    AllowedValues:
+      - aurora-mysql
+      - aurora-postgresql
+
+  DatabaseInstanceClass:
+    Default: db.r4.large
+    Type: String
+    Description: "Database instance class, e.g. db.t2.micro (free tier) - Engine support: https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/Concepts.DBInstanceClass.html"
+    ConstraintDescription: DB instance class not supported
+    AllowedValues:
+      - db.t2.small
+      - db.t2.medium
+      - db.t2.xlarge
+      - db.r4.large
+      - db.r4.xlarge
+      - db.r4.2xlarge
+      - db.r4.4xlarge
+      - db.r4.8xlarge
+      - db.r4.16xlarge
+
+Resources:
+  #https://aws.amazon.com/blogs/security/how-to-create-and-retrieve-secrets-managed-in-aws-secrets-manager-using-aws-cloudformation-template/
+  #https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-secretsmanager-rotationschedule.html
+  #https://docs.aws.amazon.com/secretsmanager/latest/userguide/integrating_cloudformation.html
+  #This is a Secret resource with a randomly generated password in its SecretString JSON.
+  rDatabaseCredentialSecret:
+    Type: AWS::SecretsManager::Secret
+    Properties:
+      Description: 'This is the database credentials for my RDS instance'
+      Name: 'databasecredential'
+      GenerateSecretString:
+        SecretStringTemplate: !Sub '{"username": "testuser"}'
+        GenerateStringKey: 'password'
+        PasswordLength: 16
+        ExcludeCharacters: '"@/\'
+  DatabaseSubnetGroup:
+    Type: AWS::RDS::DBSubnetGroup
+    Properties:
+      DBSubnetGroupDescription: Database subnet group
+      SubnetIds:
+      - Fn::ImportValue: !Sub ${NetworkStackName}-PrivateSubnet1ID
+      - Fn::ImportValue: !Sub ${NetworkStackName}-PrivateSubnet2ID
+      Tags:
+      - Key: Name
+        Value: Read Replica Database Subnet Group
+
+  #https://docs.aws.amazon.com/AmazonRDS/latest/AuroraUserGuide/AuroraMySQL.Replication.CrossRegion.html
+  #Before you can create an Aurora MySQL DB cluster that is a cross-region Read Replica, you must enable binary logging on your source Aurora MySQL DB cluster. Cross-region replication for Aurora MySQL uses MySQL binary replication to replay changes on the cross-region Read Replica DB cluster.
+  AuroraDBClusterParameterGroup:
+    Type: "AWS::RDS::DBClusterParameterGroup"
+    Properties:
+      Parameters:
+        binlog_format: "mixed"
+        general_log: 1
+        slow_query_log: 1
+        log_output: FILE
+        server_audit_logs_upload: 1
+      Family: "aurora-mysql5.7"
+      Description: "Aurora Cluster Parameter Group"
+
+  AuroraCluster:
+    Type: AWS::RDS::DBCluster
+    Properties:
+      DBClusterParameterGroupName: !Ref AuroraDBClusterParameterGroup
+      DBSubnetGroupName: !Ref DatabaseSubnetGroup
+      EnableCloudwatchLogsExports:
+        - audit
+        - error
+        - general
+      Engine: !Ref DatabaseEngine
+      ReplicationSourceIdentifier: !Ref SourceDBInstanceIdentifier
+      SourceRegion: !Ref SourceRegion
+      KmsKeyId: !Ref KmsKeyId
+      StorageEncrypted: true
+      VpcSecurityGroupIds:
+        - Fn::ImportValue: !Sub ${NetworkStackName}-DatabaseGroupID
+    DependsOn: DatabaseSubnetGroup
+
+  EnhancedMonitoringRole:
+    Type: AWS::IAM::Role
+    Properties:
+      Path: /
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: monitoring.rds.amazonaws.com
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AmazonRDSEnhancedMonitoringRole
+
+  MySQLAuroraParameterGroup:
+    Type: AWS::RDS::DBParameterGroup
+    Properties:
+      Description: Logging Enabled
+      Family: aurora-mysql5.7
+      Parameters:
+        slow_query_log: 1
+        general_log: 1
+        log_output: FILE
+
+  AuroraInstance0:
+    Type: AWS::RDS::DBInstance
+    Properties:
+      PubliclyAccessible: false
+      Engine: !Ref DatabaseEngine
+      DBClusterIdentifier: !Ref AuroraCluster
+      DBInstanceClass: !Ref DatabaseInstanceClass
+      DBSubnetGroupName: !Ref DatabaseSubnetGroup
+      StorageEncrypted: true
+      DBParameterGroupName: !Ref MySQLAuroraParameterGroup
+      MonitoringInterval: 60
+      MonitoringRoleArn: !GetAtt EnhancedMonitoringRole.Arn 
+      CopyTagsToSnapshot: true
+      Tags:
+      - Key: Name
+        Value: !Ref AWS::StackName
+    DependsOn: AuroraCluster
+
+  AuroraInstance1:
+    Type: AWS::RDS::DBInstance
+    Properties:
+      PubliclyAccessible: false
+      Engine: !Ref DatabaseEngine
+      DBClusterIdentifier: !Ref AuroraCluster
+      DBInstanceClass: !Ref DatabaseInstanceClass
+      DBSubnetGroupName: !Ref DatabaseSubnetGroup
+      StorageEncrypted: true
+      DBParameterGroupName: !Ref MySQLAuroraParameterGroup
+      MonitoringInterval: 60
+      MonitoringRoleArn: !GetAtt EnhancedMonitoringRole.Arn
+      CopyTagsToSnapshot: true
+      Tags:
+      - Key: Name
+        Value: !Ref AWS::StackName
+    DependsOn: AuroraCluster
+
+Outputs:
+  Name:
+    Description: Aurora Stack Name
+    Value: !Ref AWS::StackName
+    Export:
+      Name: !Sub ${AWS::StackName}-Name
+
+  AuroraClusterId:
+    Description: Aurora Cluster ID
+    Value: !Ref AuroraCluster
+    Export:
+      Name: !Sub ${AWS::StackName}-AuroraClusterID
+
+  AuroraDbURL:
+    Description: Aurora Database URL
+    Value: !GetAtt AuroraCluster.Endpoint.Address
+    Export:
+      Name: !Sub ${AWS::StackName}-DatabaseURL
+
+  AuroraReadDbURL:
+    Description: Aurora Database Read URL
+    Value: !GetAtt AuroraCluster.ReadEndpoint.Address
+    Export:
+      Name: !Sub ${AWS::StackName}-DatabaseReadURL
+
+  AuroraDBPort:
+    Description: Database Port
+    Value: !GetAtt AuroraCluster.Endpoint.Port
+    Export:
+      Name: !Sub ${AWS::StackName}-DatabasePort
+
+  DBSecretsArn:
+    Description: Secrets Manager ARN containing Database Username and Password
+    Value: !Ref rDatabaseCredentialSecret
+    Export:
+      Name: !Sub ${AWS::StackName}-DatabaseSecretsManagerArn
