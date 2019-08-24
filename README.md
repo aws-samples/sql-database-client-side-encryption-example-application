@@ -16,7 +16,7 @@ pip3 install aws-sam-cli
 sam --version
 ```
 
-Create a AWS KMS Key Administrator role. Be sure that the key policy that you create allows the current user to [administer the CMK](https://aws.amazon.com/premiumsupport/knowledge-center/update-key-policy-future/).
+Create a AWS KMS key administrator role. Be sure that the key policy that you create allows the current user to [administer the CMK](https://aws.amazon.com/premiumsupport/knowledge-center/update-key-policy-future/).
 
 For example, create a role named 'KeyAdministratorRole' with the following IAM Policy.
 
@@ -46,6 +46,27 @@ For example, create a role named 'KeyAdministratorRole' with the following IAM P
         }
     ]
 }
+```
+
+You will need to create an AWS CodeCommit repository named 'django-webapp' in the primary and secondary region in order for the AWS CodePipeline to build the Docker image. You can clone this repo and push to CodeCommit in each region.
+
+If you are familiar with editing the .git/config file, you can use these as examples and substitute the corresponding region for REGION-HERE.
+
+```
+[remote "aws"]
+    url = https://git-codecommit.REGION-HERE.amazonaws.com/v1/repos/django-webapp
+    fetch = +refs/heads/*:refs/remotes/aws/*
+[remote "aws2"]
+    url = https://git-codecommit.REGION-HERE.amazonaws.com/v1/repos/django-webapp
+    fetch = +refs/heads/*:refs/remotes/aws2/*
+```
+
+Then execute
+
+```
+git push aws master
+git push aws2 master
+
 ```
 
 Deploy the primary region.
