@@ -83,7 +83,7 @@ Package the AWS CloudFormation nested template. Update the parameter for desired
 Input parameter |    Input parameter description
 --- | ---
 SecondaryRegion  |  Enter the secondary region for the Amazon Aurora Read Replicas.
-CloudFormationUser  |  This is the AWS CloudFormation user that is managing the AWS KMS CMK. This should be the same user that is executing the AWS CloudFormation template.
+KeyAdministratorRole  | This is the IAM Role that is managing the CMK.
 
 Specify the Amazon S3 Bucket.
 
@@ -117,7 +117,7 @@ Package the nested AWS CloudFormation template. Specify the Amazon S3 Bucket. Up
 Input parameter  |  Input parameter description
 --- | ---
 PrimaryRegion  |  Enter the primary region where both reads and write are performed with Amazon Aurora.
-CloudFormationUser  |   This is the AWS CloudFormation user that is managing the AWS KMS CMK. This should be the same user that is executing the AWS CloudFormation template.
+KeyAdministratorRole  |  This is the IAM Role that is managing the CMK.
 SourceDBInstanceIdentifier  |  Enter the primary region Amazon Aurora cluster arn. This value is located in the AWS CloudFormation outputs under the database stack value AuroraClusterArn. An Amazon Aurora cluster replica will be created in the secondary region.
 
 ```
