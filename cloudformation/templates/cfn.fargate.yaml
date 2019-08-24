@@ -985,8 +985,7 @@ Resources:
             Action: 'sts:AssumeRole'
       Path: /
       ManagedPolicyArns:
-        - >-
-          arn:aws:iam::aws:policy/service-role/AmazonAPIGatewayPushToCloudWatchLogs
+        - arn:aws:iam::aws:policy/service-role/AmazonAPIGatewayPushToCloudWatchLogs
 
   #https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-apigateway-account.html
   APIGatewayAccount:
@@ -1001,7 +1000,9 @@ Resources:
       RetentionInDays: 7
 
   APIGatewayDeployment:
-    DependsOn: APIProxyMethod
+    DependsOn:
+      - APIProxyMethod
+      - APIGatewayAccount
     Type: 'AWS::ApiGateway::Deployment'
     Properties:
       RestApiId: !Ref RestApi
