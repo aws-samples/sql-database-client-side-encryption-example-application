@@ -12,13 +12,6 @@ https://docs.djangoproject.com/en/2.1/ref/settings/
 
 import os
 
-#https://stackoverflow.com/questions/46902357/error-loading-mysqldb-module-did-you-install-mysqlclient-or-mysql-python
-#django.core.exceptions.ImproperlyConfigured: Error loading MySQLdb module.
-#Did you install mysqlclient?
-if 'DJANGO_DATABASE_ENGINE' in os.environ and os.environ['DJANGO_DATABASE_ENGINE']=='django.db.backends.mysql':
-    import pymysql
-    pymysql.install_as_MySQLdb()
-
 #load environment variables first
 AWS_PRIMARY_REGION=os.environ["AWS_PRIMARY_REGION"]
 AWS_SECONDARY_REGION=os.environ["AWS_SECONDARY_REGION"]
