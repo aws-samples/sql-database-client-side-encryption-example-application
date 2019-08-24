@@ -92,6 +92,9 @@ DATABASES = {
         'PASSWORD': os.environ['DATABASE_PASSWORD'] if 'DATABASE_PASSWORD' in os.environ else get_secret()["password"],
         'HOST': os.environ['DATABASE_HOSTNAME'],
         'PORT': os.environ['DATABASE_PORT'],
+        'OPTIONS': {
+            'init_command': 'SET innodb_strict_mode=1',
+        },
     }
 }
 
