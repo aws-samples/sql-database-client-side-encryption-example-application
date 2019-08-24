@@ -93,7 +93,7 @@ DATABASES = {
         'HOST': os.environ['DATABASE_HOSTNAME'],
         'PORT': os.environ['DATABASE_PORT'],
         'OPTIONS': {
-            'init_command': 'SET innodb_strict_mode=1',
+            'init_command': "SET sql_mode='STRICT_TRANS_TABLES', innodb_strict_mode=1",
         },
     }
 }
