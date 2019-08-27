@@ -2,7 +2,7 @@
 
 SQL Database Client-side Encryption Example Application
 
-This is the sample AWS CloudFormation that sets up a multi-region Amazon Aurora MySQL database with AWS Fargate microservice. This is for the blog post How to Perform SQL Database Client-Side Encryption Backed by KMS for Multi-Region High Availability.
+This is the sample AWS CloudFormation that sets up a multi-region Amazon Aurora MySQL database with AWS Fargate microservice. This is for the blog post [Performing SQL database client-side encryption for multi-Region high availability](https://aws.amazon.com/blogs/database/performing-sql-database-client-side-encryption-for-multi-region-high-availability/).
 
 You will need to ensure that the [AWS Serverless Application Model (SAM) Command Line Interface (CLI)](https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/serverless-sam-cli-install.html) is installed.
 
