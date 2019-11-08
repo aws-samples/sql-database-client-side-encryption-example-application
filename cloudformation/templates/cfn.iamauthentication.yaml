@@ -77,7 +77,7 @@ Resources:
                   - "logs:CreateLogStream"
                   - "logs:PutLogEvents"
                   - "logs:CreateLogGroup"
-                Resource: "*"
+                Resource: !Sub "arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/lambda/*:*:*"
 
   rDBInstanceIdLambda:
     Type: AWS::Serverless::Function

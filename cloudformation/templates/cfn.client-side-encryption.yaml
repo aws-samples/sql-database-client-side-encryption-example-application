@@ -118,3 +118,13 @@ Resources:
         pAppSecurityGroup: !GetAtt VPCStack.Outputs.AppSecurityGroup
         pDatabaseSecretsManagerArn: !GetAtt DatabaseStack.Outputs.DBSecretsArn
         pDatabaseURL: !GetAtt DatabaseStack.Outputs.AuroraDbURL
+
+Outputs:
+  StackName:
+    Value: !Ref AWS::StackName
+    Export:
+      Name: !Sub "${AWS::StackName}-StackName"
+  AuroraClusterArn:
+    Value: !GetAtt  DatabaseStack.Outputs.AuroraClusterArn
+    Export:
+      Name: !Sub "${AWS::StackName}-AuroraClusterArn"
