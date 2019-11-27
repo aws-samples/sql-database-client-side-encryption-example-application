@@ -10,7 +10,7 @@ RUN python3.7 get-pip.py
 RUN mkdir /app
 WORKDIR /app
 ADD requirements.txt /app
-RUN pip3 install pip==19.2.2
+RUN pip3 install --upgrade pip
 RUN pip3 install -r requirements.txt
 ADD app/ /app
 
