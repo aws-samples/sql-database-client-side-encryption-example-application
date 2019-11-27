@@ -1,8 +1,9 @@
 FROM ubuntu:latest
+RUN echo "hi"
 RUN apt-get update -qq
 RUN apt-get install -y -qq software-properties-common build-essential
 RUN add-apt-repository -y ppa:deadsnakes/ppa
-RUN apt-get install -y -qq  python3.7 python3.7-dev default-libmysqlclient-dev
+RUN apt-get install -y -qq  python3.7 python3.7-dev default-libmysqlclient-dev libssl-dev
 RUN apt-get install -y -qq curl
 RUN curl https://bootstrap.pypa.io/get-pip.py -o get-pip.py
 #ModuleNotFoundError: No module named 'distutils.util' 
