@@ -118,3 +118,23 @@ Resources:
         pAppSecurityGroup: !GetAtt VPCStack.Outputs.AppSecurityGroup
         pDatabaseSecretsManagerArn: !GetAtt DatabaseStack.Outputs.DBSecretsArn
         pDatabaseURL: !GetAtt DatabaseStack.Outputs.AuroraDbURL
+
+Outputs:
+  StackName:
+    Value: !Ref AWS::StackName
+    Export:
+      Name: !Sub "${AWS::StackName}-StackName"
+  AuroraClusterArn:
+    Value: !GetAtt DatabaseStack.Outputs.AuroraClusterArn
+    Export:
+      Name: !Sub "${AWS::StackName}-AuroraClusterArn"
+  CreateUrl:
+    Description: "Go to this URL first"
+    Value: !GetAtt FargateStack.Outputs.CreateUrl
+    Export:
+      Name: !Sub "${AWS::StackName}-CreateUrl"
+  AuthenticateDataUrl:
+    Description: "Use this URL to authenticate the data you entered on the Create page"
+    Value: !GetAtt FargateStack.Outputs.AuthenticateDataUrl
+    Export:
+      Name: !Sub "${AWS::StackName}-AuthenticateDataUrl"
