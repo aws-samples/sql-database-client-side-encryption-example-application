@@ -76,41 +76,39 @@ Resources:
       KeyPolicy:
         Version: '2012-10-17'
         Statement:
-        - Sid: Root Account Permissions
-          Effect: Allow
-          Principal:
-            AWS: !Sub 'arn:aws:iam::${AWS::AccountId}:root'
-          Action: 'kms:*'
-          Resource: '*'
-        - Sid: CloudFormation user Permissions 
-          Effect: Allow
-          Principal:
-            AWS: 
-              - !Sub 'arn:aws:iam::${AWS::AccountId}:user/cfn'
-          Action:
-            - 'kms:Create*'
-            - 'kms:Describe*'
-            - 'kms:Enable*'
-            - 'kms:List*'
-            - 'kms:Put*'
-            - 'kms:Update*'
-            - 'kms:Revoke*'
-            - 'kms:Disable*'
-            - 'kms:Get*'
-            - 'kms:Delete*'
-            - 'kms:ScheduleKeyDeletion'
-            - 'kms:CancelKeyDeletion'
-          Resource: '*'
-        - Sid: User encrypt decrypt Permissions
-          Effect: Allow
+        - Sid: 'Allow administration of the key'
+          Effect: 'Allow'
           Principal:
             AWS:
-               - !Sub 'arn:aws:iam::${AWS::AccountId}:user/cfn'
+              - !Sub 'arn:aws:iam::${AWS::AccountId}:root'
+              - !Sub 'arn:aws:iam::${AWS::AccountId}:role/${KeyAdministratorRole}'
+          Action:
+          - 'kms:Create*'
+          - 'kms:Describe*'
+          - 'kms:Enable*'
+          - 'kms:List*'
+          - 'kms:Put*'
+          - 'kms:Update*'
+          - 'kms:Revoke*'
+          - 'kms:Disable*'
+          - 'kms:Get*'
+          - 'kms:Delete*'
+          - 'kms:ScheduleKeyDeletion'
+          - 'kms:CancelKeyDeletion'
+          Resource: '*'
+        - Sid: 'Allow access to encrypt and decrypt to be delegated via IAM policies'
+          Effect: 'Allow'
+          Principal:
+            AWS:
+              - !Sub 'arn:aws:iam::${AWS::AccountId}:root'
           Action:
             - 'kms:Encrypt'
+            - 'kms:Decrypt'
             - 'kms:ReEncrypt*'
             - 'kms:GenerateDataKey*'
-            - 'kms:Decrypt'
+            - 'kms:CreateGrant'
+            - 'kms:ListGrants'
+            - 'kms:DescribeKey'
           Resource: '*'
       KeyUsage: ENCRYPT_DECRYPT
       Tags:
