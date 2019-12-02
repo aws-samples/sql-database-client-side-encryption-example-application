@@ -48,7 +48,7 @@ Parameters:
     MinLength: 1
     MaxLength: 255
     AllowedPattern: "^[a-zA-Z][-a-zA-Z0-9]*$"
-  
+
   DjangoDatabaseEngine:
     Type: String
     Description: Django Database Connector Type
@@ -481,7 +481,7 @@ Resources:
     Properties:
       MinimumHealthyHosts:
         Type: FLEET_PERCENT
-        Value: '50'
+        Value: 50
 
   CodeDeployServiceRole:
     Type: AWS::IAM::Role
@@ -516,7 +516,7 @@ Resources:
               ActionTypeId:
                 Category: Source
                 Owner: AWS
-                Version: 1
+                Version: '1'
                 Provider: CodeCommit
               Configuration:
                 RepositoryName: !Ref GitSourceRepo
@@ -530,7 +530,7 @@ Resources:
               ActionTypeId:
                 Category: Build
                 Owner: AWS
-                Version: 1
+                Version: '1'
                 Provider: CodeBuild
               Configuration:
                 ProjectName: !Ref CodeBuildProject
@@ -545,7 +545,7 @@ Resources:
               ActionTypeId:
                 Category: Deploy
                 Owner: AWS
-                Version: 1
+                Version: '1'
                 Provider: ECS
               Configuration:
                 ClusterName: !Ref FargateEcsCluster
@@ -578,7 +578,7 @@ Resources:
               ActionTypeId:
                 Category: Source
                 Owner: ThirdParty
-                Version: 1
+                Version: '1'
                 Provider: GitHub
               Configuration:
                 Owner: !Ref GitHubUser
@@ -594,7 +594,7 @@ Resources:
               ActionTypeId:
                 Category: Build
                 Owner: AWS
-                Version: 1
+                Version: '1'
                 Provider: CodeBuild
               Configuration:
                 ProjectName: !Ref CodeBuildProject
@@ -609,7 +609,7 @@ Resources:
               ActionTypeId:
                 Category: Deploy
                 Owner: AWS
-                Version: 1
+                Version: '1'
                 Provider: ECS
               Configuration:
                 ClusterName: !Ref FargateEcsCluster
@@ -674,67 +674,22 @@ Resources:
       LogGroupName: !Sub /fargate/${AWS::StackName}/${GitSourceRepo}/${GitBranch}/${EnvironmentName}
       RetentionInDays: !Ref ContainerLogRetentionInDays
 
-  DefaultTaskRole:
-    Type: AWS::IAM::Role
+  TaskRoleManagedPolicy:
+    Type: AWS::IAM::ManagedPolicy
     Properties:
-      Path: /
-      AssumeRolePolicyDocument:
+      PolicyDocument:
         Version: 2012-10-17
         Statement:
           - Effect: Allow
-            Principal:
-              Service: ecs-tasks.amazonaws.com
-            Action: sts:AssumeRole
-      Policies:
-        - PolicyName: AmazonECSTaskExecutionRolePolicy
-          PolicyDocument:
-            Statement:
-            - Effect: Allow
-              Action:
-                # Allow the ECS tasks to upload logs to CloudWatch
-                - 'logs:CreateLogStream'
-                - 'logs:PutLogEvents'
-              Resource: !Sub "arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:*:*:*"
-        - PolicyName: default-s3-bucket
-          PolicyDocument:
-            Version: 2012-10-17
-            Statement:
-              - Effect: Allow
-                Action: s3:*
-                Resource: !GetAtt DefaultContainerBucket.Arn
-        - PolicyName: DatabaseSecretsManagerPolicy
-          PolicyDocument:
-            Version: 2012-10-17
-            Statement:
-              - Effect: Allow
-                Action: secretsmanager:GetSecretValue
-                Resource: 
-                  !If [ IsDbStackSet, "Fn::ImportValue": !Sub "${DatabaseStackName}-DatabaseSecretsManagerArn", !Ref DatabaseSecretsManagerArn ]
-        - PolicyName: DecryptEncryptColumnPolicy
-          PolicyDocument:
-            Version: 2012-10-17
-            Statement:
-              - Effect: Allow
-                Action:
-                  - 'kms:Decrypt'
-                  - 'kms:Encrypt'
-                  - 'kms:ReEncrypt*'
-                  - 'kms:GenerateDataKey*'
-                  - 'kms:DescribeKey*'
-                Resource:
-                  - !Sub 'arn:aws:kms:${AWS::Region}:${KMSAccountID}:key/*'
-                  - !Sub 'arn:aws:kms:${PrimaryRegion}:${KMSAccountID}:key/*'
-                  - !Sub 'arn:aws:kms:${SecondaryRegion}:${KMSAccountID}:key/*'
-        #need capability to list kms key alias in order to lookup the keyid required for local region decryption
-        - PolicyName: ListAliasPolicy
-          PolicyDocument:
-            Version: 2012-10-17
-            Statement:
-              - Effect: Allow
-                Action:
-                  - 'kms:ListAliases'
-                Resource:
-                  - '*'
+            Action:
+              - 's3:*'
+            Resource: !GetAtt DefaultContainerBucket.Arn
+          - Effect: Allow
+            Action: secretsmanager:GetSecretValue
+            Resource: 
+              !If [ IsDbStackSet, "Fn::ImportValue": !Sub "${DatabaseStackName}-DatabaseSecretsManagerArn", !Ref DatabaseSecretsManagerArn ]
+      Roles:
+        - 'FargateTaskRole'
     DependsOn: DefaultContainerBucket
 
   DefaultTaskExecutionRole:
@@ -760,7 +715,7 @@ Resources:
       Cpu: !Ref DefaultContainerCpu
       Memory: !Ref DefaultContainerMemory
       NetworkMode: awsvpc
-      TaskRoleArn: !GetAtt DefaultTaskRole.Arn
+      TaskRoleArn: !Sub 'arn:aws:iam::${AWS::AccountId}:role/FargateTaskRole'
       ExecutionRoleArn: !GetAtt DefaultTaskExecutionRole.Arn
       ContainerDefinitions:
         - Name: !Ref GitSourceRepo
