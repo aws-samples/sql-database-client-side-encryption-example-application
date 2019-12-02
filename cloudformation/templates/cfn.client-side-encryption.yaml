@@ -49,6 +49,7 @@ Parameters:
 
 Resources: 
   KMSCMKKeyStack: 
+    DependsOn: IAMRoleStack
     Type: AWS::CloudFormation::Stack
     Properties: 
       TemplateURL: cfn.kms.yaml
@@ -119,6 +120,11 @@ Resources:
         pDatabaseSecretsManagerArn: !GetAtt DatabaseStack.Outputs.DBSecretsArn
         pDatabaseURL: !GetAtt DatabaseStack.Outputs.AuroraDbURL
 
+  IAMRoleStack:
+    Type: AWS::CloudFormation::Stack
+    Properties:
+      TemplateURL: cfn.iam.yaml
+
 Outputs:
   StackName:
     Value: !Ref AWS::StackName
@@ -138,3 +144,9 @@ Outputs:
     Value: !GetAtt FargateStack.Outputs.AuthenticateDataUrl
     Export:
       Name: !Sub "${AWS::StackName}-AuthenticateDataUrl"
+  FargateTaskRoleArn:
+    Description: "Fargate Task IAM Role Arn"
+    Value: !GetAtt IAMRoleStack.Outputs.FargateTaskRoleArn
+    Export:
+      Name: !Sub "${AWS::StackName}-FargateTaskRoleArn"
+
