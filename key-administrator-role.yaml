@@ -28,16 +28,6 @@ Resources:
               - 'kms:DisableKeyRotation'
               - 'kms:ScheduleKeyDeletion'
             Resource: "*"
-          - Effect: Deny
-            Action:
-              - 'kms:Encrypt'
-              - 'kms:Decrypt'
-              - 'kms:ReEncrypt*'
-              - 'kms:GenerateDataKey*'
-              - 'kms:CreateGrant'
-              - 'kms:ListGrants'
-              - 'kms:DescribeKey'
-            Resource: "*"
 
   KeyAdministratorRole:
     Type: 'AWS::IAM::Role'
