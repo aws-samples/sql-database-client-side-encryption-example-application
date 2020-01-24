@@ -28,7 +28,9 @@ BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 # See https://docs.djangoproject.com/en/2.1/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'g0#srvzdo2nr31x5u3_el8sk$m=^xg5sil-!+76p-1kcn@($43'
+# A random security key is generated per instance for ease of demo purposes only. You will want to securely configured the secret key consistently across all instances behind a load balancer to ensure consistent session results. https://stackoverflow.com/questions/51657422/are-django-secret-keys-per-instance-or-per-app
+from django.core.management.utils import get_random_secret_key
+SECRET_KEY = get_random_secret_key()
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = False
